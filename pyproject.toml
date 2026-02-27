@@ -1,0 +1,11 @@
+[project]
+name = "dirty-signal-lab"
+version = "0.1.0"
+description = "Dirty Signal Lab: microstructure data → signal discovery → predictive features → backtest"
+requires-python = ">=3.9"
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+addopts = "-q"
