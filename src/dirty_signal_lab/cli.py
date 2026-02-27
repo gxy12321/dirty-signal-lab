@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-import pandas as pd
-
 from .ingest import generate_dirty_ticks, write_raw
 from .clean import clean_ticks, write_clean
 from .features import compute_features
