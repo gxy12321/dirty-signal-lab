@@ -23,7 +23,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
     clean_path, dq_path = write_clean(clean_df, dq, proc_dir)
 
     # 3) features
-    feat_df = compute_features(clean_df).dropna()
+    feat_df = compute_features(clean_df, model=args.model, ensemble=args.ensemble).dropna()
     feat_path = proc_dir / "features.csv"
     feat_df.to_csv(feat_path, index=False)
 
@@ -45,6 +45,8 @@ def main() -> None:
     run.add_argument("--n", type=int, default=50000)
     run.add_argument("--seed", type=int, default=7)
     run.add_argument("--cost-bps", type=float, default=1.0)
+    run.add_argument("--model", default="ridge", help="Model: ridge|rf|extratrees|xgb|lgbm|mlp")
+    run.add_argument("--ensemble", action="store_true", help="Average all models")
     run.set_defaults(func=run_pipeline)
 
     args = parser.parse_args()

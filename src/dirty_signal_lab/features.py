@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import pandas as pd
 import numpy as np
-from .utils import ema, rolling_zscore, ridge_fit, standardize
+from .utils import ema, rolling_zscore
+from .model import fit_predict, fit_predict_all
 
 
-def compute_features(df: pd.DataFrame) -> pd.DataFrame:
+def compute_features(df: pd.DataFrame, model: str = "ridge", ensemble: bool = False) -> pd.DataFrame:
     df = df.copy()
 
     # microprice (cache rolling means to avoid recomputation)
@@ -41,21 +42,13 @@ def compute_features(df: pd.DataFrame) -> pd.DataFrame:
     x = df[feature_cols].to_numpy()
     y = df["target"].to_numpy()
 
-    # train/test split for model (walk-forward style)
-    valid = np.isfinite(x).all(axis=1) & np.isfinite(y)
-    n = len(df)
-    split = int(n * 0.7)
-    train_mask = valid & (np.arange(n) < split)
-
-    if train_mask.sum() > 20:
-        x_train = x[train_mask]
-        y_train = y[train_mask]
-        x_train_std, mean, std = standardize(x_train)
-        weights = ridge_fit(x_train_std, y_train, alpha=1.0)
-        x_all_std = (x - mean) / std
-        model_score = x_all_std @ weights
+    if ensemble:
+        preds = fit_predict_all(x, y, ["ridge", "rf", "extratrees", "xgb", "lgbm", "mlp"])
+        for name, score in preds.items():
+            df[f"model_score_{name}"] = score
+        model_score = np.nanmean(np.column_stack(list(preds.values())), axis=1)
     else:
-        model_score = np.zeros(n)
+        model_score = fit_predict(x, y, model)
 
     df["model_score"] = model_score
     df["signal"] = np.tanh(df["model_score"]).clip(-1, 1)

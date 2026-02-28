@@ -3,3 +3,6 @@ pandas
 matplotlib
 pytest
 ruff
+scikit-learn
+xgboost
+lightgbm

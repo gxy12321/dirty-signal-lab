@@ -41,7 +41,15 @@ pip install -r requirements.txt
 python -m dirty_signal_lab.cli run \
   --symbol DEMO \
   --n 20000 \
-  --seed 7
+  --seed 7 \
+  --model xgb
+
+# Or ensemble
+python -m dirty_signal_lab.cli run \
+  --symbol DEMO \
+  --n 20000 \
+  --seed 7 \
+  --ensemble
 
 # 3) Inspect outputs
 ls data/processed/
@@ -65,10 +73,11 @@ ls reports/
    - Microprice
    - Volatility regime proxy
 
-4. **Predictive features + model**
+4. **Predictive features + models**
    - Rolling/decayed stats
    - Z‑scored feature stack
-   - Ridge‑regularized linear model (walk‑forward split)
+   - Multiple models: Ridge, Random Forest, ExtraTrees, XGBoost, LightGBM, MLP
+   - Optional ensemble (average of all models)
 
 5. **Backtest**
    - Model‑driven signal
@@ -79,16 +88,23 @@ ls reports/
 
 ---
 
-## 🧪 Model (simple but non‑trivial)
-The pipeline now trains a **ridge‑regularized linear model** on a walk‑forward split
-(first 70% train, rest predict) using:
+## 🧪 Models (SOTA‑ish mix)
+The pipeline trains **multiple models** on a walk‑forward split (first 70% train, rest predict):
 
+- Ridge (linear baseline)
+- Random Forest
+- ExtraTrees
+- XGBoost
+- LightGBM
+- MLP (neural net)
+
+Features:
 - OFI z‑score
 - Microprice z‑score
 - Volatility regime z‑score
 - OFI EMA z‑score
 
-The model score is squashed with `tanh` to keep positions bounded.
+Signals come from the selected model, or an **ensemble average**. Scores are squashed with `tanh` to keep positions bounded.
 
 ---
 
