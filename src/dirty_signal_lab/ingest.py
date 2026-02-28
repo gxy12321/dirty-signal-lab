@@ -55,3 +55,43 @@ def write_raw(df: pd.DataFrame, out_dir: str | Path) -> Path:
     path = out_dir / "dirty_ticks.csv"
     df.to_csv(path, index=False)
     return path
+
+
+def fetch_stooq_daily(symbol: str) -> pd.DataFrame:
+    url = f"https://stooq.com/q/d/l/?s={symbol.lower()}&i=d"
+    df = pd.read_csv(url)
+    if df.empty:
+        raise ValueError(f"No data returned from Stooq for symbol '{symbol}'")
+    df = df.rename(columns={"Date": "ts"})
+    df["ts"] = pd.to_datetime(df["ts"], errors="coerce")
+    df = df.dropna(subset=["ts"]).sort_values("ts")
+    return df
+
+
+def load_stooq_ticks(symbol: str) -> pd.DataFrame:
+    daily = fetch_stooq_daily(symbol)
+    # Use close as mid, synthesize bid/ask around it
+    close = daily["Close"].to_numpy(dtype=float)
+    spread = np.maximum(close * 0.0002, 0.01)
+    bid = close - spread / 2
+    ask = close + spread / 2
+
+    volume = daily.get("Volume")
+    if volume is None:
+        size = np.full_like(close, 100.0)
+    else:
+        size = np.maximum(volume.to_numpy(dtype=float) / 1000.0, 1.0)
+
+    side = np.where(daily["Close"] >= daily["Open"], "B", "S")
+
+    df = pd.DataFrame(
+        {
+            "ts": daily["ts"],
+            "sym": symbol.upper(),
+            "bid": bid,
+            "ask": ask,
+            "size": size,
+            "side": side,
+        }
+    )
+    return df

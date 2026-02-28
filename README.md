@@ -51,6 +51,19 @@ python -m dirty_signal_lab.cli run \
   --seed 7 \
   --ensemble
 
+# 2b) Benchmark all models + figures
+python -m dirty_signal_lab.cli benchmark \
+  --source synthetic \
+  --symbol DEMO \
+  --n 30000 \
+  --top-k 3
+
+# Use up-to-date daily data from Stooq (no API key)
+python -m dirty_signal_lab.cli benchmark \
+  --source stooq \
+  --symbol aapl.us \
+  --top-k 3
+
 # 3) Inspect outputs
 ls data/processed/
 ls reports/

@@ -107,12 +107,11 @@ def available_models() -> dict[str, ModelSpec]:
     return models
 
 
-def fit_predict(
+def _prepare_xy(
     x: np.ndarray,
     y: np.ndarray,
-    model_name: str,
     train_frac: float = 0.7,
-) -> np.ndarray:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray] | None:
     n = len(y)
     train_mask, _ = _walk_forward_split(n, train_frac=train_frac)
 
@@ -120,15 +119,28 @@ def fit_predict(
     train_mask = train_mask & valid
 
     if train_mask.sum() < 30:
-        return np.zeros(n)
+        return None
 
     x_train = x[train_mask]
     y_train = y[train_mask]
 
-    # standardize for stability
     x_train_std, mean, std = _standardize(x_train)
     x_all_std = (x - mean) / std
     x_all_std = np.where(np.isfinite(x_all_std), x_all_std, 0.0)
+    return x_train_std, y_train, x_all_std
+
+
+def fit_predict(
+    x: np.ndarray,
+    y: np.ndarray,
+    model_name: str,
+    train_frac: float = 0.7,
+) -> np.ndarray:
+    prepared = _prepare_xy(x, y, train_frac=train_frac)
+    if prepared is None:
+        return np.zeros(len(y))
+
+    x_train_std, y_train, x_all_std = prepared
 
     models = available_models()
     if model_name not in models:
@@ -147,4 +159,20 @@ def fit_predict_all(
     model_names: Iterable[str],
     train_frac: float = 0.7,
 ) -> dict[str, np.ndarray]:
-    return {name: fit_predict(x, y, name, train_frac=train_frac) for name in model_names}
+    prepared = _prepare_xy(x, y, train_frac=train_frac)
+    if prepared is None:
+        return {name: np.zeros(len(y)) for name in model_names}
+
+    x_train_std, y_train, x_all_std = prepared
+    models = available_models()
+
+    preds: dict[str, np.ndarray] = {}
+    for name in model_names:
+        if name not in models:
+            raise ValueError(f"Unknown model '{name}'. Available: {sorted(models)}")
+        estimator = models[name].estimator
+        estimator.fit(x_train_std, y_train)
+        pred = estimator.predict(x_all_std)
+        preds[name] = np.where(np.isfinite(pred), pred, 0.0)
+
+    return preds

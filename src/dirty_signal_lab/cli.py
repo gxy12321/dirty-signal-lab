@@ -7,6 +7,7 @@ from .clean import clean_ticks, write_clean
 from .features import compute_features
 from .backtest import backtest
 from .report import write_report
+from .benchmark import run_benchmark
 
 
 def run_pipeline(args: argparse.Namespace) -> None:
@@ -48,6 +49,24 @@ def main() -> None:
     run.add_argument("--model", default="ridge", help="Model: ridge|rf|extratrees|xgb|lgbm|mlp")
     run.add_argument("--ensemble", action="store_true", help="Average all models")
     run.set_defaults(func=run_pipeline)
+
+    bench = sub.add_parser("benchmark", help="Benchmark all models + figures")
+    bench.add_argument("--source", default="synthetic", help="synthetic|stooq")
+    bench.add_argument("--symbol", default="DEMO", help="Symbol (synthetic or stooq)")
+    bench.add_argument("--n", type=int, default=50000, help="Rows for synthetic source")
+    bench.add_argument("--seed", type=int, default=7)
+    bench.add_argument("--cost-bps", type=float, default=1.0)
+    bench.add_argument("--out-dir", default="reports/benchmark")
+    bench.add_argument("--top-k", type=int, default=3)
+    bench.set_defaults(func=lambda a: run_benchmark(
+        source=a.source,
+        symbol=a.symbol,
+        n=a.n,
+        seed=a.seed,
+        cost_bps=a.cost_bps,
+        out_dir=a.out_dir,
+        top_k=a.top_k,
+    ))
 
     args = parser.parse_args()
     if not getattr(args, "cmd", None):
