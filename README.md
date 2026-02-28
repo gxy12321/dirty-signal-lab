@@ -65,16 +65,30 @@ ls reports/
    - Microprice
    - Volatility regime proxy
 
-4. **Predictive features**
+4. **Predictive features + model**
    - Rolling/decayed stats
-   - Lagged, normalized signals
+   - Z‑scored feature stack
+   - Ridge‑regularized linear model (walk‑forward split)
 
 5. **Backtest**
-   - Simple signal‑based strategy
+   - Model‑driven signal
    - Costs, slippage, turnover controls
 
 6. **Report**
    - Markdown summary + key metrics
+
+---
+
+## 🧪 Model (simple but non‑trivial)
+The pipeline now trains a **ridge‑regularized linear model** on a walk‑forward split
+(first 70% train, rest predict) using:
+
+- OFI z‑score
+- Microprice z‑score
+- Volatility regime z‑score
+- OFI EMA z‑score
+
+The model score is squashed with `tanh` to keep positions bounded.
 
 ---
 
